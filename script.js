@@ -1,10 +1,10 @@
-
 'use strict';
 
 const $ = (id) => document.getElementById(id);
 const passwordInput = $('passwordInput');
 
 // AUDIO FILES
+// Keep all MP3 files in the same folder as index.html.
 const sounds = {
   weak: new Audio('./weak.mp3'),
   strong: new Audio('./strong.mp3'),
@@ -12,12 +12,12 @@ const sounds = {
   typing: new Audio('./typing.mp3')
 };
 
-Object.values(sounds).forEach(sound => {
+Object.values(sounds).forEach((sound) => {
   sound.preload = 'auto';
+  sound.volume = 0.7;
 });
 
 let lastSoundLevel = '';
-let typingTimer;
 
 function playSound(soundName) {
   const sound = sounds[soundName];
@@ -26,9 +26,13 @@ function playSound(soundName) {
   sound.pause();
   sound.currentTime = 0;
 
-  sound.play().catch(error => {
-    console.warn('Audio playback failed:', error);
-  });
+  const playback = sound.play();
+
+  if (playback && typeof playback.catch === 'function') {
+    playback.catch((error) => {
+      console.warn(`${soundName} sound could not play:`, error);
+    });
+  }
 }
 
 function playStrengthSound(result) {
@@ -47,6 +51,7 @@ function playStrengthSound(result) {
     soundLevel = 'weak';
   }
 
+  // Play sound only when password strength changes category.
   if (soundLevel !== lastSoundLevel) {
     lastSoundLevel = soundLevel;
     playSound(soundLevel);
@@ -233,15 +238,17 @@ function renderAnalysis() {
   $('checkCount').textContent = `${result.passed} / 6 passed`;
 
   updateTips(password, result);
+
+  // Play the matching password-strength sound.
   playStrengthSound(result);
 }
 
 // PASSWORD TYPING + SOUND
 passwordInput.addEventListener('input', () => {
-  clearTimeout(typingTimer);
-
   if (passwordInput.value.length > 0) {
     playSound('typing');
+  } else {
+    lastSoundLevel = '';
   }
 
   renderAnalysis();
